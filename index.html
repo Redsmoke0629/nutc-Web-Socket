@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Echo 機器人</title>
+</head>
+<body>
+    <h2>🤖 1對1 Echo 機器人測試</h2>
+    <div id="status">狀態：準備中...</div>
+    <div id="output" style="border:1px solid #333; height: 150px; overflow-y: scroll; padding: 10px; background: #f0f0f0;"></div>
+
+    <!-- 新增名字輸入框 -->
+    <input type="text" id="name" placeholder="你的名字" value="訪客" style="width: 80px;">
+    <input type="text" id="msg" placeholder="輸入測試訊息...">
+    <button onclick="send()">發送</button>
+
+    <script>
+        // 1. 建立連線 (注意：這裡是 ws:// 開頭)
+        const socket = new WebSocket('ws://localhost:8080');
+        const output = document.getElementById('output');
+        const statusDiv = document.getElementById('status');
+
+        // 2. 監聽連線開啟
+        socket.onopen = function(event) {
+            console.log('連線成功！');
+            statusDiv.innerText = '狀態：🟢 已連線';
+            statusDiv.style.color = 'green';
+        };
+
+        // 3. 監聽收到訊息 (Server 傳回來的 Echo)
+        socket.onmessage = function(event) {
+            const newMsg = document.createElement('div');
+            newMsg.innerText = event.data;
+            newMsg.style.color = 'blue';
+            output.appendChild(newMsg);
+
+            // 自動捲動到底部
+            output.scrollTop = output.scrollHeight;
+        };
+
+        // 4. 監聽連線關閉
+        socket.onclose = function(event) {
+            statusDiv.innerText = '狀態：🔴 已斷線';
+            statusDiv.style.color = 'red';
+        };
+
+        // 5. 監聽錯誤
+        socket.onerror = function(event) {
+            statusDiv.innerText = '狀態：⚠️ 發生錯誤';
+        };
+
+        // 發送訊息的功能 (修改版)
+        function send() {
+            const nameInput = document.getElementById('name');
+            const msgInput = document.getElementById('msg');
+
+            if(msgInput.value) {
+                // 顯示自己打的字 (前端自己先顯示)
+                const myMsg = document.createElement('div');
+                myMsg.innerText = `${nameInput.value} (我)：${msgInput.value}`;
+                output.appendChild(myMsg);
+
+                // 準備要傳給 Server 的資料物件
+                const payload = {
+                    name: nameInput.value,
+                    text: msgInput.value
+                };
+
+                // 轉成 JSON 字串後發送
+                socket.send(JSON.stringify(payload));
+
+                msgInput.value = ''; // 清空訊息框，保留名字
+            }
+        }
+    </script>
+</body>
+</html>
